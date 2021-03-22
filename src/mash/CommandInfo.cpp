@@ -35,6 +35,7 @@ CommandInfo::CommandInfo()
     addOption("tabular", Option(Option::Boolean, "t", "", "Tabular output (rather than padded), with no header. Incompatible with -d, -H and -c.", ""));
     addOption("counts", Option(Option::Boolean, "c", "", "Show hash count histograms for each sketch. Incompatible with -d, -H and -t.", ""));
     addOption("dump", Option(Option::Boolean, "d", "", "Dump sketches in JSON format. Incompatible with -H, -t, and -c.", ""));
+	addOption("James_dump", Option(Option::Boolean, "j", "", "Dump sketches in JSON format. Incompatible with -H, -t, and -c.", ""));
 }
 
 int CommandInfo::run() const
@@ -49,7 +50,7 @@ int CommandInfo::run() const
     bool tabular = options.at("tabular").active;
     bool counts = options.at("counts").active;
     bool dump = options.at("dump").active;
-    
+    bool JACdump = options.at("James_dump").active; 
     if ( header && tabular )
     {
     	cerr << "ERROR: The options -H and -t are incompatible." << endl;
@@ -87,6 +88,32 @@ int CommandInfo::run() const
 			cerr << "ERROR: The options -d and -c are incompatible." << endl;
 			return 1;
 		}
+		if (JACdump ) { 
+			cerr << "ERROR: The options -j and -d are incompatible." << endl;
+			return 1;
+		}
+	}
+
+	if ( JACdump )
+	{
+		if ( tabular )
+		{
+			cerr << "ERROR: The options -j and -t are incompatible." << endl;
+			return 1;
+		}
+	
+		if ( header )
+		{
+			cerr << "ERROR: The options -j and -H are incompatible." << endl;
+			return 1;
+		}
+	
+		if ( counts )
+		{
+			cerr << "ERROR: The options -j and -c are incompatible." << endl;
+			return 1;
+		}
+	
 	}
     
     const string & file = arguments[0];
@@ -121,6 +148,10 @@ int CommandInfo::run() const
     {
 		return writeJson(sketch);
     }
+	else if ( JACdump )
+	{
+		return writeJACdump(sketch);
+	}
     
     if ( tabular )
     {
@@ -274,6 +305,39 @@ int CommandInfo::writeJson(const Sketch & sketch) const
 	
 	cout << "	]" << endl;
 	cout << "}" << endl;
+	
+	return 0;
+}
+
+int CommandInfo::writeJACdump(const Sketch & sketch) const
+{
+	string alphabet;
+	sketch.getAlphabetAsString(alphabet);
+	bool use64 = sketch.getUse64();
+	
+	
+	cout << "#kmer=" << sketch.getKmerSize() 
+	<<";alphabet=" << alphabet 
+	<< ";preserveCase=" << (sketch.getPreserveCase() ? "true" : "false") 
+	<< ";canonical\" : " << (sketch.getNoncanonical() ? "false" : "true") 
+	<< ";sketchSize:" << sketch.getMinHashesPerWindow() 
+	<< ";hashType:" << HASH 
+	<< ";hashBits:" << (use64 ? 64 : 32) 
+	<< ";hashSeed:" << sketch.getHashSeed() << endl;
+
+	for ( uint64_t i = 0; i < sketch.getReferenceCount(); i++ )
+	{
+		const Sketch::Reference & ref = sketch.getReference(i);
+		cout << "#ref.name=" << ref.name << ";ref.length=" << ref.length << ";ref.comment=" << ref.comment << endl;
+	
+		for ( int j = 0; j < ref.hashesSorted.size(); j++ )
+		{
+			cout <<  ( use64 ? ref.hashesSorted.at(j).hash64 : ref.hashesSorted.at(j).hash32 ) << "\t" << ref.counts[j] << endl;
+			
+		}
+
+	}
+	
 	
 	return 0;
 }
