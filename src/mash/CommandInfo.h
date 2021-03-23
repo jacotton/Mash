@@ -24,7 +24,7 @@ private:
 	
 	int printCounts(const Sketch & sketch) const;
 	int writeJson(const Sketch & sketch) const;
-    int writeJACdump(const Sketch & sketch) const;
+    int writeCountDump(const Sketch & sketch) const;
 };
 }
 #endif
