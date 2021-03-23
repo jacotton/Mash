@@ -1,0 +1,35 @@
+BootStrap: docker
+From: ubuntu:18.04
+
+%labels
+Maintainer jacotton
+base.image="ubuntu:18.04"
+version="1"
+software="mash"
+software.version="2.3 with hack by JAC"
+
+%help
+Being in the folder of the container
+Launch the command: singularity run mash-2.3-jacotton.simg + pass full command line to mash 
+
+
+%post
+apt-get update
+apt-get install -y build-essential wget gcc zlib1g-dev
+apt-get install -y git autoconf
+apt-get install -y libgsl-dev
+#apt-get install -y libcapnp-dev capnproto 
+apt-get install -y curl
+curl -O https://capnproto.org/capnproto-c++-0.8.0.tar.gz
+tar zxf capnproto-c++-0.8.0.tar.gz
+cd capnproto-c++-0.8.0
+./configure
+make -j6 check
+make install
+cd ..
+git clone https://github.com/jacotton/Mash
+cd Mash
+autoconf
+./configure
+make all
+make install
